@@ -33,3 +33,4 @@ go.work.sum
 
 *key.pem
 cert/
+pluginserver.db

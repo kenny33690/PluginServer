@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"pluginserver/internal/logger"
 	"strings"
 
 	"github.com/philippseith/signalr"
@@ -21,25 +22,25 @@ func NewHub(validator *Validator, registry *Registry) *Hub {
 	}
 }
 
-func (h *Hub) CreatePlugin(name string, certString string) (string, error) {
+func (h *Hub) CreatePlugin(name string, certString string) string {
 	name = strings.TrimSpace(name)
+	logger.Infof("name:%s", name)
 	certString = strings.TrimSpace(certString)
 
 	if name == "" {
-		return "", fmt.Errorf("name is required")
+		panic(fmt.Errorf("name is required"))
 	}
 	if certString == "" {
-		return "", fmt.Errorf("cert-string is required")
+		panic(fmt.Errorf("cert-string is required"))
 	}
 
 	certInfo, err := h.validator.ValidatePluginCert(name, certString)
 	if err != nil {
-		return "", err
+		panic(err)
 	}
 
 	if err := h.registry.SavePlugin(context.Background(), name, certString, certInfo.Subject, certInfo.NotBefore, certInfo.NotAfter); err != nil {
-		return "", err
+		panic(err)
 	}
-
-	return "plugin created", nil
+	return "plugin created"
 }
