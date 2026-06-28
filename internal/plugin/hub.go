@@ -15,6 +15,11 @@ type Hub struct {
 	registry  *Registry
 }
 
+type PluginInfo struct {
+	Name string `json:"Name"`
+	Cert string `json:"Cert"`
+}
+
 func NewHub(validator *Validator, registry *Registry) *Hub {
 	return &Hub{
 		validator: validator,
@@ -43,4 +48,15 @@ func (h *Hub) CreatePlugin(name string, certString string) string {
 		panic(err)
 	}
 	return "plugin created"
+}
+
+func (h *Hub) GetPlugin(name string) PluginInfo {
+	info, err := h.registry.GetPlugin(context.Background(), name)
+	if err != nil {
+		panic(err)
+	}
+	if info == nil {
+		panic(fmt.Errorf("plugin not found"))
+	}
+	return *info
 }
