@@ -47,9 +47,16 @@ CREATE TABLE IF NOT EXISTS PluginRegistry (
 	created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 `
+	const uniqueIdx = `
+CREATE UNIQUE INDEX IF NOT EXISTS idx_plugin_registry_name
+ON PluginRegistry(name);
+`
 
 	if _, err := r.db.ExecContext(ctx, stmt); err != nil {
 		return fmt.Errorf("create PluginRegistry: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, uniqueIdx); err != nil {
+		return fmt.Errorf("create PluginRegistry name index: %w", err)
 	}
 
 	return nil

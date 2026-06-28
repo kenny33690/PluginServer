@@ -26,7 +26,9 @@ func Run() error {
 
 	server, err := signalr.NewServer(
 		context.Background(),
-		signalr.SimpleHubFactory(plugin.NewHub(validator, registry)),
+		signalr.HubFactory(func() signalr.HubInterface {
+			return plugin.NewHub(validator, registry)
+		}),
 	)
 	if err != nil {
 		return err

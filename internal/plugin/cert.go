@@ -55,6 +55,7 @@ func (v *Validator) ValidatePluginCert(name string, certString string) (CertInfo
 	if _, err := cert.Verify(x509.VerifyOptions{
 		Roots:       v.roots,
 		CurrentTime: now,
+		KeyUsages:   []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 	}); err != nil {
 		return CertInfo{}, fmt.Errorf("verify certificate chain: %w", err)
 	}
