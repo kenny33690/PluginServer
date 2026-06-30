@@ -1,7 +1,10 @@
 package plugin
 
 import (
+	"crypto/ecdsa"
+	"crypto/sha256"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"os"
@@ -65,6 +68,36 @@ func (v *Validator) ValidatePluginCert(name string, certString string) (CertInfo
 		NotBefore: cert.NotBefore,
 		NotAfter:  cert.NotAfter,
 	}, nil
+}
+
+func (v *Validator) ValidatePluginSign(name string, certString string, sign []byte, checksum string) (bool, error) {
+	cert, err := parseCertificate(certString)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = v.ValidatePluginCert(name, certString)
+	if err != nil {
+		return false, err
+	}
+
+	isVerified := ecdsa.VerifyASN1(cert.PublicKey.(*ecdsa.PublicKey), []byte(checksum), sign)
+
+	if !isVerified {
+		return false, fmt.Errorf("sign is invalid")
+	}
+
+	return true, nil
+}
+
+func (v *Validator) ValidatePluginChecksum(content []byte, checksum string) (bool, error) {
+	hashed := sha256.Sum256(content)
+	check := hex.EncodeToString(hashed[:])
+	if check != checksum {
+		return false, fmt.Errorf("checksum is invalid")
+	}
+
+	return true, nil
 }
 
 func parseCertificate(certString string) (*x509.Certificate, error) {

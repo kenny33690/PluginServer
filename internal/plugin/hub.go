@@ -60,3 +60,51 @@ func (h *Hub) GetPlugin(name string) PluginInfo {
 	}
 	return *info
 }
+
+func (h *Hub) UploadPlugin(name string, version string, binary []byte, checksum string, sign []byte) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		panic(fmt.Errorf("name is required"))
+	}
+	if version == "" {
+		panic(fmt.Errorf("version is required"))
+	}
+	if len(binary) == 0 {
+		panic(fmt.Errorf("binary is required"))
+	}
+	if checksum == "" {
+		panic(fmt.Errorf("checksum is required"))
+	}
+	if len(sign) == 0 {
+		panic(fmt.Errorf("sign is required"))
+	}
+
+	info, err := h.registry.GetPlugin(context.Background(), name)
+	if err != nil {
+		panic(err)
+	}
+	if info == nil {
+		panic(fmt.Errorf("plugin not found"))
+	}
+
+	isChecksum, err := h.validator.ValidatePluginChecksum(binary, checksum)
+	if err != nil {
+		panic(err)
+	}
+	if !isChecksum {
+		panic(fmt.Errorf("checksum is invalid"))
+	}
+
+	isVerified, err := h.validator.ValidatePluginSign(name, info.Cert, sign, checksum)
+	if err != nil {
+		panic(err)
+	}
+	if !isVerified {
+		panic(fmt.Errorf("sign is invalid"))
+	}
+
+	if err := h.registry.UpdatePluginBinary(context.Background(), name, version, binary, checksum, sign); err != nil {
+		panic(err)
+	}
+	return "plugin uploaded"
+}

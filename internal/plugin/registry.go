@@ -28,6 +28,22 @@ func (pluginRecord) TableName() string {
 	return "PluginRegistry"
 }
 
+type pluginVersion struct {
+	ID        uint      `gorm:"column:id;primaryKey;autoIncrement"`
+	Name      string    `gorm:"column:name;not null;index"`
+	Version   string    `gorm:"column:version;not null"`
+	IsEnabled bool      `gorm:"column:is_enabled;default:true"`
+	Binary    []byte    `gorm:"column:binary"`
+	Checksum  string    `gorm:"column:checksum"`
+	Sign      []byte    `gorm:"column:sign"`
+	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime"`
+	UpdatedAt time.Time `gorm:"column:updated_at;not null;autoUpdateTime"`
+}
+
+func (pluginVersion) TableName() string {
+	return "PluginVersions"
+}
+
 func OpenRegistry(ctx context.Context, dsn string) (*Registry, error) {
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -55,8 +71,8 @@ func (r *Registry) Close() error {
 }
 
 func (r *Registry) init(ctx context.Context) error {
-	if err := r.db.WithContext(ctx).AutoMigrate(&pluginRecord{}); err != nil {
-		return fmt.Errorf("migrate PluginRegistry: %w", err)
+	if err := r.db.WithContext(ctx).AutoMigrate(&pluginRecord{}, &pluginVersion{}); err != nil {
+		return fmt.Errorf("migrate tables: %w", err)
 	}
 
 	return nil
@@ -93,4 +109,20 @@ func (r *Registry) GetPlugin(ctx context.Context, name string) (*PluginInfo, err
 		Name: record.Name,
 		Cert: record.CertString,
 	}, nil
+}
+
+func (r *Registry) UpdatePluginBinary(ctx context.Context, name string, version string, binary []byte, checksum string, sign []byte) error {
+	versionRecord := pluginVersion{
+		Name:      name,
+		Version:   version,
+		Binary:    binary,
+		Checksum:  checksum,
+		Sign:      sign,
+		IsEnabled: true,
+	}
+
+	if err := r.db.WithContext(ctx).Create(&versionRecord).Error; err != nil {
+		return fmt.Errorf("insert PluginVersions: %w", err)
+	}
+	return nil
 }
