@@ -20,6 +20,14 @@ type PluginInfo struct {
 	Cert string `json:"Cert"`
 }
 
+type PluginDownloadBody struct {
+	Name      string `json:"Name"`
+	Version   string `json:"Version"`
+	Binary    []byte `json:"Binary"`
+	Checksum  string `json:"Checksum"`
+	Signature []byte `json:"Signature"`
+}
+
 func NewHub(validator *Validator, registry *Registry) *Hub {
 	return &Hub{
 		validator: validator,
@@ -107,4 +115,24 @@ func (h *Hub) UploadPlugin(name string, version string, binary []byte, checksum 
 		panic(err)
 	}
 	return "plugin uploaded"
+}
+
+func (h *Hub) DownloadPlugin(name string, version string) PluginDownloadBody {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		panic(fmt.Errorf("name is required"))
+	}
+	if version == "" {
+		panic(fmt.Errorf("version is required"))
+	}
+	info, err := h.registry.DownloadPluginBinary(context.Background(), name, version)
+	if err != nil {
+		panic(err)
+	}
+
+	return PluginDownloadBody{Name: info.Name,
+		Binary:    info.Binary,
+		Version:   info.Version,
+		Checksum:  info.Checksum,
+		Signature: info.Sign}
 }

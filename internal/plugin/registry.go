@@ -126,3 +126,29 @@ func (r *Registry) UpdatePluginBinary(ctx context.Context, name string, version 
 	}
 	return nil
 }
+
+func (r *Registry) DownloadPluginBinary(ctx context.Context, name string, version string) (*pluginVersion, error) {
+	var plugin pluginVersion
+	err := r.db.WithContext(ctx).
+		Where(&pluginVersion{Name: name, Version: version, IsEnabled: true}).
+		Take(&plugin).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("cannot find version: %s-%s", name, version)
+		}
+		return nil, fmt.Errorf("cannot find version: %w", err)
+	}
+	return &plugin, nil
+}
+
+func (r *Registry) GetPluginVersionList(ctx context.Context, name string) (*[]string, error) {
+	var list []string
+	err := r.db.WithContext(ctx).Where("name = ?", name).
+		Where("isEnabled = ?", true).
+		Select([]string{"version"}).
+		Take(list).Error
+	if err != nil {
+		return nil, err
+	}
+	return &list, err
+}
